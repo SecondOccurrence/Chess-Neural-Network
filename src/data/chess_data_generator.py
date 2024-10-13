@@ -10,6 +10,13 @@ class ChessDataGenerator:
     self.dataset = []
 
   def generate(self):
+    """
+    Generates a dataset containing board states and their best moves
+
+    Stores the dataset in self.dataset
+    If the self.stockfish_path is invalid the function will return early and print a warning to stderr
+
+    """
     try:
       engine = chess.engine.SimpleEngine.popen_uci(self.stockfish_path)
     except chess.engine.EngineTerminatedError:
@@ -31,6 +38,7 @@ class ChessDataGenerator:
       self.dataset.append((board_as_matrix, best_move))
 
       board.push(best_move)
+      print(self.num_samples)
 
     engine.quit()
 
@@ -55,37 +63,62 @@ class ChessDataGenerator:
     matrix = np.zeros((14, 8, 8), dtype=np.int8)
 
     for piece in chess.PIECE_TYPES:
+      # Add to white matrices (0-5)
       for square in board.pieces(piece, chess.WHITE):
         coords = self.__square_to_coord(square)
         matrix[piece - 1][coords[0]][coords[1]] = 1
+      # Add to black matrices (6-11)
       for square in board.pieces(piece, chess.BLACK):
         coords = self.__square_to_coord(square)
         matrix[piece + 5][coords[0]][coords[1]] = 1
+        
+      # Save board turn to restore later
+    saved_turn = board.turn
+
+    # Add possible white moves (12)
+    board.turn = chess.WHITE
+    for move in board.legal_moves:
+      coords = self.__square_to_coord(move.to_square)
+      matrix[12][coords[0]][coords[1]] = 1
+
+    # Add possible black moves (13)
+    board.turn = chess.BLACK
+    for move in board.legal_moves:
+      coords = self.__square_to_coord(move.to_square)
+      matrix[13][coords[0]][coords[1]] = 1
+
+    # Restore previous turn
+    board.turn = saved_turn
 
     return matrix
 
   def __square_to_coord(self, square: int) -> tuple[int, int]:
-    if square < 0 or square > 63:
-      raise ValueError("Number must be between 0 and 63.")
+    """
+    Converts a number representation of a chess board square (0-63) to a coordinate in a 8x8 grid
+
+    Args:
+      square (int): number to convert to coordinate
+
+    Returns:
+      tuple[int, int]: in range 0..7,0..7
+
+    """
 
     row = square // 8
     column = square % 8
 
     return (row, column)
 
+  def save_dataset(self, filename="dataset.npz"):
+    """
+    Saves the dataset into a numpy .npz file
+    """
 
+    boards = []
+    move_indices = []
 
+    for board_matrix, best_move in self.dataset:
+      boards.append(board_matrix)
+      move_indices.append(best_move)
 
-    # 14 8 8
-
-
-#board = chess.Board()
-#example_move = self.engine.play(board, chess.engine.Limit(time=1.0))
-#print(example_move)
-
-#  for each sample:
-#    get a random board state
-#    use stockfish to generate the next best possible move
-#    convert board state to 3d matrix representation
-#    add (board_as_matrix, best_move) to dataset[]
-
+    np.savez_compressed(filename, boards=boards, move_indices=move_indices)
