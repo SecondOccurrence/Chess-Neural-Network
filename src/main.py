@@ -1,0 +1,1 @@
+from data.chess_data_generator import ChessDataGenerator
