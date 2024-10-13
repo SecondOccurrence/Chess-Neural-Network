@@ -8,6 +8,7 @@ class ChessDataGenerator:
     self.num_samples = num_samples
     self.stockfish_path = stockfish_path
     self.dataset = []
+    self.all_possible_moves = set()
 
   def generate(self):
     """
@@ -25,20 +26,27 @@ class ChessDataGenerator:
 
     board = chess.Board()
 
-    while len(self.dataset) < self.num_samples and not board.is_game_over():
-      sf_result = engine.play(board, chess.engine.Limit(time=0.5))
+    self.update_progress()
+    while len(self.dataset) < self.num_samples:
+      if board.is_game_over():
+        # Reset board on game end
+        board = chess.Board()
+
+      sf_result = engine.play(board, chess.engine.Limit(time=0.1))
       if sf_result is None:
-        print("No valid move found. Ending generation.")
-        break
+        # Reset board if no move for some reason
+        board = chess.Board()
+        continue
 
       best_move: chess.Move = sf_result.move
       board_as_matrix = self.board_to_matrix(board)
-      print(board_as_matrix)
 
       self.dataset.append((board_as_matrix, best_move))
+      self.all_possible_moves.add(best_move)
 
       board.push(best_move)
-      print(self.num_samples)
+
+      self.update_progress()
 
     engine.quit()
 
@@ -109,16 +117,49 @@ class ChessDataGenerator:
 
     return (row, column)
 
+  def update_progress(self):
+    bar_length = 30
+    completed_samples = len(self.dataset)
+
+    progress = completed_samples / self.num_samples
+    bar_progress = int(bar_length * progress)
+
+    bar = '#' * bar_progress + '-' * (bar_length - bar_progress)
+    print(f"\r[{bar}] {progress:.2%}, {completed_samples}/{self.num_samples}", end="")
+
   def save_dataset(self, filename="dataset.npz"):
     """
+    ** apply softmax during inference or loss calculation after output layer
+    ** use cross entropy
     Saves the dataset into a numpy .npz file
+
+    Dataset consists of:
+    1. the board state as 3d matrix defined in board_to_matrix(..)
+    2. the best move for that board as an index in a list of all possible moves the dataset has generated
+
     """
 
+    num_moves = len(self.all_possible_moves)
+    moves_as_list = list(self.all_possible_moves)
+
+    move_indices = {}
+    for index, move in enumerate(moves_as_list):
+      move_indices[move] = index
+
     boards = []
-    move_indices = []
+    targets = []
 
     for board_matrix, best_move in self.dataset:
       boards.append(board_matrix)
-      move_indices.append(best_move)
 
-    np.savez_compressed(filename, boards=boards, move_indices=move_indices)
+      current_target = np.zeros(num_moves)
+      index = move_indices[best_move]
+      current_target[index] = 1
+
+      targets.append(current_target)
+
+    boards = np.array(boards)
+    targets = np.array(targets)
+
+    np.savez_compressed(filename, boards=boards, targets=targets)
+    print(f"Dataset successfully saved into \"{filename}\"")

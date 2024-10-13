@@ -2,3 +2,4 @@ stockfish
 venv
 **/pyrightconfig.json
 **/__pycache__/
+data/*
