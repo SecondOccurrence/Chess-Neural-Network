@@ -18,7 +18,7 @@ class BaseModel(nn.Module, ABC):
   def create_network(self) -> nn.Module:
     pass
 
-  def initialise_weight(self):
+  def initialise_weights(self):
     # iterate through every layer in the model
     for layer in self.children():
       if isinstance(layer, nn.Linear):

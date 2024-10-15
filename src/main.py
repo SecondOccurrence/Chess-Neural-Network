@@ -1,5 +1,6 @@
 from config import Config
 from training import Trainer
+from model import ChessNeuralNetwork
 
 conf = Config(data_path="../data/chess_dataset.npz")
 
@@ -17,7 +18,7 @@ def train_model(model, train_loader, val_loader, save_path, retrain, epochs, dev
   trainer = Trainer(model, save_path)
   trainer.train(train_loader, val_loader, epochs, device)
 
-chess_nn_model = 0
+chess_nn_model = ChessNeuralNetwork(conf.input_size, conf.output_size, conf.nn.learning_rate)
 train_model(
   chess_nn_model, conf.train_loader, conf.val_loader,
   conf.nn.weight_path, conf.nn.retrain_model,
