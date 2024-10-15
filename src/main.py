@@ -1,11 +1,25 @@
-import numpy as np
-
 from config import Config
+from training import Trainer
 
 conf = Config(data_path="../data/chess_dataset.npz")
 
-print("exited")
+def train_model(model, train_loader, val_loader, save_path, retrain, epochs, device, model_name):
+  print(f"Do you wish to train the {model_name} model? [Y,y/N,n]")
 
-#print(f"Move index: {test_index}")
-#test_move = list(data_generator.all_possible_moves)[test_index]
-#print(f"Actual move: {test_move}")
+  to_train = input()
+  if to_train.lower() != 'y':
+    return
+
+  if retrain is False:
+    model.load_state(save_path)
+
+  model.to(device)
+  trainer = Trainer(model, save_path)
+  trainer.train(train_loader, val_loader, epochs, device)
+
+chess_nn_model = 0
+train_model(
+  chess_nn_model, conf.train_loader, conf.val_loader,
+  conf.nn.weight_path, conf.nn.retrain_model,
+  conf.nn.num_epochs, conf.device, "Chess Neural Network"
+)
