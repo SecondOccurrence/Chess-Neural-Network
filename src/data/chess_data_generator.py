@@ -5,19 +5,27 @@ import numpy as np
 
 class ChessDataGenerator:
   """
-  A class to manage dataset generation, saving and loading
+  A class to manage dataset generation and saving
 
   Attributes:
     num_samples (int): Number of chess board states to be generated for the dataset
     stockfish_path (str): relative path to the stockfish executable
-    dataset (numpy.ndarray, chess.Move): The dataset. Input is the numpy array (of size 14*8*8) and target is chess.Move
+    temp_dataset (numpy.ndarray, chess.Move): Stores the dataset before converting the chess move into a target/label for the NN
+    dataset (numpy.ndarray, numpy.ndarray): The dataset.
+      [0]: (14*8*8) representation of a board state. Explained in board_to_matrix(..)
+      [1]: 1D vector of size (len(self.all_possible_moves)). The 1 in the vector is stored at the index
+      to which the chess.Move is stored in self.all_possible_moves. In the dataset, all other values are 0.
 
   """
 
-  def __init__(self, num_samples=2048, stockfish_path="../stockfish"):
+  def __init__(self, num_samples: int, stockfish_path: str, save_path: str):
     self.num_samples = num_samples
     self.stockfish_path = stockfish_path
+    self.save_path = save_path
+
+    self.temp_dataset = []
     self.dataset = []
+
     self.all_possible_moves = set()
 
   def generate(self):
@@ -36,10 +44,10 @@ class ChessDataGenerator:
 
     board = chess.Board()
 
-    self.update_progress()
+    self.update_progress(len(self.temp_dataset))
 
     save_counter = 0
-    while len(self.dataset) < self.num_samples:
+    while len(self.temp_dataset) < self.num_samples:
       if board.is_game_over():
         # Reset board on game end
         board = chess.Board()
@@ -53,19 +61,26 @@ class ChessDataGenerator:
       best_move: chess.Move = sf_result.move
       board_as_matrix = self.board_to_matrix(board)
 
-      self.dataset.append((board_as_matrix, best_move))
+      # Store (np.ndarray, chess.Move) in temporary dataset variable
+      self.temp_dataset.append((board_as_matrix, best_move))
       self.all_possible_moves.add(best_move)
 
       board.push(best_move)
 
-      self.update_progress()
+      self.update_progress(len(self.temp_dataset))
 
       save_counter += 1
+      # Save at intervals in case an unexpected error
       if save_counter % 249 == 0:
-        self.save_dataset(filename="../data/chess_dataset.npz")
+        # Convert temporary dataset to final dataset
+        moves_as_list = list(self.all_possible_moves)
+        self.__convert_dataset(moves_as_list)
+        # Save the dataset
+        self.__save_dataset(filename=self.save_path)
         save_counter = 0
 
     engine.quit()
+    self.__save_dataset(filename=self.save_path)
 
   def board_to_matrix(self, board) -> np.ndarray:
     """
@@ -97,7 +112,7 @@ class ChessDataGenerator:
         coords = self.__square_to_coord(square)
         matrix[piece + 5][coords[0]][coords[1]] = 1
         
-      # Save board turn to restore later
+    # Save board turn to restore later
     saved_turn = board.turn
 
     # Add possible white moves (12)
@@ -134,9 +149,33 @@ class ChessDataGenerator:
 
     return (row, column)
 
-  def update_progress(self):
+  def __convert_dataset(self, move_list):
+    """
+    Converts the temporary dataset into one that can be used in a Neural Network
+
+    ____([1]) is converted from chess.Move into a 1D vector
+    where the value '1' is stored at the index at which the move is found in self.all_possible_moves
+
+    """
+
+    # Need to reset the dataset in case it has been converted before
+    self.dataset = []
+
+    # Create a dictionary containing the index of each move in the list
+    move_indices = {}
+    for index, move in enumerate(move_list):
+      move_indices[move] = index
+
+    num_moves = len(self.all_possible_moves)
+    for board_matrix, best_move in self.temp_dataset:
+      current_target = np.zeros(num_moves)
+      index = move_indices[best_move]
+      current_target[index] = 1
+
+      self.dataset.append((board_matrix, current_target))
+      
+  def update_progress(self, completed_samples):
     bar_length = 30
-    completed_samples = len(self.dataset)
 
     progress = completed_samples / self.num_samples
     bar_progress = int(bar_length * progress)
@@ -146,7 +185,7 @@ class ChessDataGenerator:
     progress_display = f"{completed_samples}/{self.num_samples}"
     print(f"\r[{bar}] {progress:.2%}, {progress_display:10}", end="")
 
-  def save_dataset(self, filename="dataset.npz"):
+  def __save_dataset(self, filename="dataset.npz"):
     """
     ** apply softmax during inference or loss calculation after output layer
     ** use cross entropy
@@ -164,24 +203,16 @@ class ChessDataGenerator:
 
     """
 
-    num_moves = len(self.all_possible_moves)
+    # Convert the dataset for saving
     moves_as_list = list(self.all_possible_moves)
-
-    move_indices = {}
-    for index, move in enumerate(moves_as_list):
-      move_indices[move] = index
+    self.__convert_dataset(moves_as_list)
 
     boards = []
     targets = []
 
     for board_matrix, best_move in self.dataset:
       boards.append(board_matrix)
-
-      current_target = np.zeros(num_moves)
-      index = move_indices[best_move]
-      current_target[index] = 1
-
-      targets.append(current_target)
+      targets.append(best_move)
 
     boards = np.array(boards)
     targets = np.array(targets)
@@ -189,40 +220,4 @@ class ChessDataGenerator:
     np.savez_compressed(filename, boards=boards, targets=targets, possible_moves=moves_as_list)
     print(f"Dataset saved to \"{filename}\"")
 
-  def load_dataset(self, filename):
-    """
-    Loads a dataset (saved as .npz) into the class
 
-    This will contain the actual dataset (containing the chess board states as 3d array, and best move index)
-    along with all the possible moves in the dataset
-
-    Note that self.dataset & self.all_possible_moves will be reset
-
-    Args:
-      filename (str): The path at which the file to load is located
-
-    """
-
-    loaded_data = np.load(filename, allow_pickle=True)
-
-    chess_board = loaded_data['boards']
-    best_move_indices = loaded_data['targets']
-    possible_moves = loaded_data['possible_moves']
-
-    if(len(chess_board) != len(best_move_indices)):
-      print("Number of chess boards are not equal to the number of moves. Data loaded is invalid. Data will not be loaded.")
-      return
-
-    # Reset dataset related variables
-    self.dataset = []
-    self.all_possible_moves = set()
-
-    for board_state, target in zip(chess_board, best_move_indices):
-      # The best move is the highest value in the target array
-      move_index = np.argmax(target)
-      best_move: chess.Move = possible_moves[move_index]
-      self.dataset.append((board_state, best_move))
-      self.all_possible_moves.add(best_move)
-
-    print(f"Successfully loaded {len(self.dataset)} samples.")
-    print(f"Successfully loaded {len(self.all_possible_moves)} possible moves.")
