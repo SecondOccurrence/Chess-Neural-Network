@@ -21,12 +21,15 @@ class ChessDataset(Dataset):
 
   def __getitem__(self, index):
     board, move_vector = self.dataset[index]
-    sample = {"board": board, "target": move_vector}
 
-    if self.data_transform:
-      sample = self.data_transform(sample)
+    # transforms.ToTensor() seems to expect the input to be of shape (H, W, C)
+    #   this input is in (C, H, W), so we need to convert it before transforming
+    board = np.transpose(board, (1, 2, 0))
+    if self.data_transform is not None:
+      board = self.data_transform(board)
 
-    return sample
+    board = board.float()
+    return board, move_vector
 
   def __load_dataset(self, filename):
     """
@@ -57,12 +60,11 @@ class ChessDataset(Dataset):
     self.dataset = []
     self.all_possible_moves = set()
 
+    for move in possible_moves:
+      self.all_possible_moves.add(move)
+
     for board_state, target in zip(chess_board, best_move_indices):
-      # The best move is the highest value in the target array
-      move_index = np.argmax(target)
-      best_move: chess.Move = possible_moves[move_index]
-      self.dataset.append((board_state, best_move))
-      self.all_possible_moves.add(best_move)
+      self.dataset.append((board_state, target))
 
     print(f"Successfully loaded {len(self.dataset)} samples.")
     print(f"Successfully loaded {len(self.all_possible_moves)} possible moves.")

@@ -11,11 +11,11 @@ class BaseModel(nn.Module, ABC):
     self.output_size = output_size
     self.lr = lr
 
-    self.net: nn.Module = self.create_network()
+    self.net: nn.Module = self.create_network(self.output_size)
     self.initialise_weights()
 
   @abstractmethod
-  def create_network(self) -> nn.Module:
+  def create_network(self, output_size) -> nn.Module:
     pass
 
   def initialise_weights(self):

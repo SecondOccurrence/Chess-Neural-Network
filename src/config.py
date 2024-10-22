@@ -27,9 +27,9 @@ class Config:
       num_epochs=50
     )
 
-    self.data_transform = transforms.Compose(
-        transforms.ToTensor()
-    )
+    self.data_transform = transforms.Compose([
+      transforms.ToTensor(),
+    ])
 
     self.dataset = ChessDataset(data_path=data_path, data_transform=self.data_transform)
     self.input_size = 14*8*8
@@ -42,12 +42,6 @@ class Config:
     self.train_loader = DataLoader(self.train_data, batch_size=self.nn.batch_size, shuffle=True)
     self.val_loader = DataLoader(self.val_data, batch_size=self.nn.batch_size, shuffle=False)
     self.test_loader = DataLoader(self.test_data, batch_size=self.nn.batch_size, shuffle=True)
-
-    # 8*8 chess board, broken into 14 layers. Explained in the data_generation class
-    print(self.dataset)
-
-
-
 
   def __get_dataset(self):
     """

@@ -4,3 +4,4 @@ venv
 **/__pycache__/
 data/*
 src/runs
+saves/

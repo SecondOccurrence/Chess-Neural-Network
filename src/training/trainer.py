@@ -16,7 +16,7 @@ class Trainer:
     for epoch in range(epochs):
       print(f"Epoch {epoch + 1} / {epochs}")
       self.fit_epoch(train_loader, epoch, device)
-      valid_loss = self.validate(epoch, val_loader, device)
+      valid_loss = self.validate(val_loader, epoch, device)
 
       if valid_loss < best_loss:
         best_loss = valid_loss
@@ -34,11 +34,12 @@ class Trainer:
     total_loss = 0.0
 
     for i, (inputs, labels) in enumerate(train_loader):
-      self.optimizer.zero_grad()
-
       # Send the data to the right device
       inputs = inputs.to(device)
       labels = labels.to(device)
+
+      self.optimizer.zero_grad()
+
 
       # Perform a forward pass through the network
       outputs = self.model(inputs)
@@ -83,6 +84,7 @@ class Trainer:
 
     with torch.no_grad():
       for inputs, labels in val_loader:
+        # TODO: label must be converted to max index
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -93,10 +95,12 @@ class Trainer:
         # Extract the class that the model has chosen as the highest probability
         #   We don't need the first of the return value, so discarding
         _, predicted_labels = torch.max(outputs.data, 1)
+        _, actual_labels = torch.max(labels.data, 1)
         # Add the batch size of the data to the total
         total += labels.size(0)
 
-        correct_labels = (predicted_labels == labels).sum().item()
+        # ISSUE: predicted_labels = 32, labels = all_possible_moves
+        correct_labels = (predicted_labels == actual_labels).sum().item()
         correct += correct_labels
 
     # Calculate statistics
