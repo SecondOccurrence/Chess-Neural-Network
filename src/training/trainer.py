@@ -1,4 +1,5 @@
 import torch
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard.writer import SummaryWriter
 
 class Trainer:
@@ -8,18 +9,26 @@ class Trainer:
     self.model = model
     self.save_path = save_path
     self.optimizer = model.configure_optimizers()
+    self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.model.lr_step, gamma=self.model.lr_gamma)
 
   def train(self, train_loader, val_loader, epochs, device):
     self.model.train()
 
-    best_loss = float("inf")
+    best_val_loss = float("inf")
+    val_patience = 0
+    val_threshold = 0.01
     for epoch in range(epochs):
       print(f"Epoch {epoch + 1} / {epochs}")
       self.fit_epoch(train_loader, epoch, device)
-      valid_loss = self.validate(val_loader, epoch, device)
+      val_loss = self.validate(val_loader, epoch, device)
 
-      if valid_loss < best_loss:
-        best_loss = valid_loss
+      if val_loss > best_val_loss + val_threshold:
+        val_patience += 1
+        if val_patience >= 5:
+          print("Stopping training early. Validation loss is increasing too much")
+          break
+      elif val_loss < best_val_loss:
+        best_val_loss = val_loss
         print("New best loss achieved. Saving model state.")
         torch.save(self.model.state_dict(), self.save_path)
 
@@ -60,6 +69,9 @@ class Trainer:
       self.update_progress(i, total_batches, current_loss)
       current_loss = 0.0
 
+    # Adjust learning rate
+    self.scheduler.step()
+
     average_loss = total_loss / total_batches
     self.writer.add_scalar("Loss/Train", average_loss, epoch)
 
@@ -99,7 +111,6 @@ class Trainer:
         # Add the batch size of the data to the total
         total += labels.size(0)
 
-        # ISSUE: predicted_labels = 32, labels = all_possible_moves
         correct_labels = (predicted_labels == actual_labels).sum().item()
         correct += correct_labels
 

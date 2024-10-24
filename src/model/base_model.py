@@ -4,12 +4,14 @@ from torch import nn
 from abc import ABC, abstractmethod
 
 class BaseModel(nn.Module, ABC):
-  def __init__(self, input_size, output_size, lr):
+  def __init__(self, input_size, output_size, lr, lr_step, lr_gamma):
     super().__init__()
 
     self.input_size = input_size
     self.output_size = output_size
     self.lr = lr
+    self.lr_step = lr_step
+    self.lr_gamma = lr_gamma
 
     self.net: nn.Module = self.create_network(self.output_size)
     self.initialise_weights()

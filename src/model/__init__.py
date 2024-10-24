@@ -1,1 +1,1 @@
-from .cnn import ChessNeuralNetwork
+from .resnet18 import ResNet18

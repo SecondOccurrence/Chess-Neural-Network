@@ -12,6 +12,8 @@ class ModelParameters:
   retrain_model: bool
   batch_size: int
   learning_rate: float
+  lr_step: int
+  lr_gamma: float
   num_epochs: int
 
 
@@ -22,8 +24,10 @@ class Config:
     self.nn = ModelParameters(
       weight_path = "../saves/chess_nn_weights.pth",
       retrain_model=True,
-      batch_size=32,
-      learning_rate=0.003,
+      batch_size=16,
+      learning_rate=0.001,
+      lr_step=2,
+      lr_gamma=0.5,
       num_epochs=50
     )
 
