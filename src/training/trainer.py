@@ -9,7 +9,7 @@ class Trainer:
     self.model = model
     self.save_path = save_path
     self.optimizer = model.configure_optimizers()
-    self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.model.lr_step, gamma=self.model.lr_gamma)
+    self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="min", factor=self.model.lr_gamma, patience=10)
 
   def train(self, train_loader, val_loader, epochs, device):
     self.model.train()
@@ -22,9 +22,11 @@ class Trainer:
       self.fit_epoch(train_loader, epoch, device)
       val_loss = self.validate(val_loader, epoch, device)
 
+      self.scheduler.step(val_loss)
+
       if val_loss > best_val_loss + val_threshold:
         val_patience += 1
-        if val_patience >= 5:
+        if val_patience >= 8:
           print("Stopping training early. Validation loss is increasing too much")
           break
       elif val_loss < best_val_loss:
@@ -68,9 +70,6 @@ class Trainer:
       # Prints statistics on training progress
       self.update_progress(i, total_batches, current_loss)
       current_loss = 0.0
-
-    # Adjust learning rate
-    self.scheduler.step()
 
     average_loss = total_loss / total_batches
     self.writer.add_scalar("Loss/Train", average_loss, epoch)

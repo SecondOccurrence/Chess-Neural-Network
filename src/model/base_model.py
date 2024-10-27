@@ -4,13 +4,12 @@ from torch import nn
 from abc import ABC, abstractmethod
 
 class BaseModel(nn.Module, ABC):
-  def __init__(self, input_size, output_size, lr, lr_step, lr_gamma):
+  def __init__(self, input_size, output_size, lr, lr_gamma):
     super().__init__()
 
     self.input_size = input_size
     self.output_size = output_size
     self.lr = lr
-    self.lr_step = lr_step
     self.lr_gamma = lr_gamma
 
     self.net: nn.Module = self.create_network(self.output_size)
@@ -49,6 +48,5 @@ class BaseModel(nn.Module, ABC):
     return self.net(X)
 
   def loss(self, y_hat, y):
-    # TODO: explain why using cross entropy loss
-    fn = nn.CrossEntropyLoss()
+    fn = nn.MSELoss()
     return fn(y_hat, y)

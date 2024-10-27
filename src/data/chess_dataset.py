@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset
 
 import numpy as np
-import chess
 
 class ChessDataset(Dataset):
   def __init__(self, data_path, data_transform=None):
@@ -12,7 +11,6 @@ class ChessDataset(Dataset):
 
     """
     self.dataset = []
-    self.all_possible_moves = set()
     self.__load_dataset(filename=data_path)
     self.data_transform = data_transform
 
@@ -50,7 +48,6 @@ class ChessDataset(Dataset):
 
     chess_board = loaded_data['boards']
     best_move_indices = loaded_data['targets']
-    possible_moves = loaded_data['possible_moves']
 
     if(len(chess_board) != len(best_move_indices)):
       print("Number of chess boards are not equal to the number of moves. Data loaded is invalid. Data will not be loaded.")
@@ -60,11 +57,7 @@ class ChessDataset(Dataset):
     self.dataset = []
     self.all_possible_moves = set()
 
-    for move in possible_moves:
-      self.all_possible_moves.add(move)
-
     for board_state, target in zip(chess_board, best_move_indices):
       self.dataset.append((board_state, target))
 
     print(f"Successfully loaded {len(self.dataset)} samples.")
-    print(f"Successfully loaded {len(self.all_possible_moves)} possible moves.")

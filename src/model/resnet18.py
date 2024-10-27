@@ -19,7 +19,7 @@ class ResNet18(BaseModel):
 
     self.net.add_module("last", nn.Sequential(
       nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(),
-      nn.LazyLinear(output_size)
+      nn.LazyLinear(output_size),
     ))
 
     return self.net

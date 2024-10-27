@@ -3,6 +3,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 
 from data.chess_dataset import ChessDataset
+from training.transforms import *
 
 from dataclasses import dataclass
 
@@ -12,7 +13,6 @@ class ModelParameters:
   retrain_model: bool
   batch_size: int
   learning_rate: float
-  lr_step: int
   lr_gamma: float
   num_epochs: int
 
@@ -24,20 +24,21 @@ class Config:
     self.nn = ModelParameters(
       weight_path = "../saves/chess_nn_weights.pth",
       retrain_model=True,
-      batch_size=16,
+      batch_size=1024,
       learning_rate=0.001,
-      lr_step=2,
-      lr_gamma=0.5,
-      num_epochs=50
+      lr_gamma=0.1,
+      num_epochs=100
     )
 
     self.data_transform = transforms.Compose([
       transforms.ToTensor(),
+      RandomTransform(HorizontalFlip(), probability=0.5),
+      RandomTransform(VerticalFlip(), probability=0.5),
     ])
 
     self.dataset = ChessDataset(data_path=data_path, data_transform=self.data_transform)
     self.input_size = 14*8*8
-    self.output_size = len(self.dataset.all_possible_moves)
+    self.output_size = 1
 
     print(f"Input size: {self.input_size}")
     print(f"Output size: {self.output_size}")
