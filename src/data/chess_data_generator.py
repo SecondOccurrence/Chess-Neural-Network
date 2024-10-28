@@ -3,7 +3,7 @@ import chess
 import chess.engine
 import numpy as np
 
-from utils import ChessUtils
+from .utils import ChessUtils
 
 class ChessDataGenerator:
   """

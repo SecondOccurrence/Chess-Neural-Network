@@ -70,3 +70,44 @@ class ChessUtils:
     board.turn = saved_turn
 
     return matrix
+
+  @staticmethod
+  def find_best_score(current_score, scores):
+    """
+    Given a current score and list of scores from possible moves,
+    find the index in the potential scores that corresponds with the most impact
+
+    Args:
+      current_score (int): the score of the current board state
+      scores (array<int>): list of scores for every possible move
+
+    Returns:
+      int: the index in the scores array that gives the best difference in scores
+
+    """
+
+    best_index = -1
+    best_diff = float("inf")
+
+    least_index = -1
+    least_diff = float("-inf")
+
+    for i in range(len(scores)):
+      score = scores[i]
+      difference = score - current_score
+
+      if difference > 0:
+        if difference > best_diff:
+          best_diff = difference
+          best_index = i
+      else:
+        if difference > least_diff:
+          least_diff = difference
+          least_index = i
+
+    if best_index != -1:
+      return best_index
+    else:
+      return least_index
+
+

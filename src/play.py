@@ -36,12 +36,28 @@ def nn_move(model, board):
 
   input = ChessUtils.board_to_matrix(board)
 
-  # get this board score
-  # get this board possible moves
-    # get scores for all those possible moves
-  # get best score compared to current score
-  # apply the move associated with the best score
+  current_score = model(input)
 
+  possible_moves = board.legal_moves
+  possible_scores = []
+
+  temp_board = board.copy()
+  for i, move in enumerate(possible_moves):
+    # Apply the possible move to a temporary board state
+    temp_board.push(move)
+    temp_input = ChessUtils.board_to_matrix(temp_board)
+
+    # Retrieve the models score interpretation of the board state
+    possible_scores.append(model(temp_input))
+
+    print(f"For move: {move}. Score - {possible_scores[i]}")
+
+    # Restore the board state before applying move
+    temp_board = board.copy()
+
+  best_move_index = ChessUtils.find_best_score(current_score, possible_scores)   
+  best_move = possible_moves[best_move_index]
+  board.push(best_move)
 
 def main():
   conf = Config(data_path="../data/chess_dataset_250k.npz")
