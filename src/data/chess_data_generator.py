@@ -69,7 +69,7 @@ class ChessDataGenerator:
 
       board_as_matrix = self.board_to_matrix(board)
 
-      # Store (np.ndarray, float) in temporary dataset variable
+      # Store (np.ndarray, float32) in temporary dataset variable
       self.dataset.append((board_as_matrix, score))
 
       self.update_progress(len(self.dataset))
@@ -85,7 +85,7 @@ class ChessDataGenerator:
     self.__save_dataset(filename=self.save_path)
 
 
-  def __retrieve_score(self, board_state) -> Optional[float]:
+  def __retrieve_score(self, board_state):
     """
     Retrieves a score that represents the board state.
 
@@ -98,9 +98,9 @@ class ChessDataGenerator:
     if score:
       if score.is_mate():
         # Considering white side scores are positive values and black negative
-        score_value = float("inf") if score.is_mate() > 0 else float("-inf")
+        score_value = np.float32(9999) if score.is_mate() > 0 else np.float32(-9999)
       else:
-        score_value = score.relative.score()
+        score_value = np.float32(score.relative.score())
     else:
       return None
 

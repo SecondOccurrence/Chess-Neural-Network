@@ -10,6 +10,7 @@ class ChessDataset(Dataset):
       data_transform (callable, optional): Optional transform to be applied on a sample
 
     """
+
     self.dataset = []
     self.__load_dataset(filename=data_path)
     self.data_transform = data_transform
@@ -18,7 +19,7 @@ class ChessDataset(Dataset):
     return len(self.dataset)
 
   def __getitem__(self, index):
-    board, move_vector = self.dataset[index]
+    board, score = self.dataset[index]
 
     # transforms.ToTensor() seems to expect the input to be of shape (H, W, C)
     #   this input is in (C, H, W), so we need to convert it before transforming
@@ -27,7 +28,8 @@ class ChessDataset(Dataset):
       board = self.data_transform(board)
 
     board = board.float()
-    return board, move_vector
+
+    return board, score
 
   def __load_dataset(self, filename):
     """
@@ -47,9 +49,9 @@ class ChessDataset(Dataset):
     loaded_data = np.load(filename, allow_pickle=True)
 
     chess_board = loaded_data['boards']
-    best_move_indices = loaded_data['targets']
+    board_score = loaded_data['targets']
 
-    if(len(chess_board) != len(best_move_indices)):
+    if(len(chess_board) != len(board_score)):
       print("Number of chess boards are not equal to the number of moves. Data loaded is invalid. Data will not be loaded.")
       return
 
@@ -57,7 +59,7 @@ class ChessDataset(Dataset):
     self.dataset = []
     self.all_possible_moves = set()
 
-    for board_state, target in zip(chess_board, best_move_indices):
+    for board_state, target in zip(chess_board, board_score):
       self.dataset.append((board_state, target))
 
     print(f"Successfully loaded {len(self.dataset)} samples.")

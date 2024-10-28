@@ -51,14 +51,13 @@ class Trainer:
 
       self.optimizer.zero_grad()
 
-
       # Perform a forward pass through the network
       outputs = self.model(inputs)
 
       # Calculate loss between outputs and target,
       #   Perform backpropagation
       #   and update parameters
-      loss = self.model.loss(outputs, labels)
+      loss = self.model.loss(outputs.squeeze(), labels)
       loss.backward()
 
       self.optimizer.step()
@@ -100,13 +99,17 @@ class Trainer:
         labels = labels.to(device)
 
         outputs = self.model(inputs)
+        outputs = outputs.squeeze()
+
+        labels = labels.float()
+
         loss = self.model.loss(outputs, labels)
         total_loss += loss.item()
 
         # Extract the class that the model has chosen as the highest probability
         #   We don't need the first of the return value, so discarding
-        _, predicted_labels = torch.max(outputs.data, 1)
-        _, actual_labels = torch.max(labels.data, 1)
+        _, predicted_labels = torch.max(outputs.data, 0)
+        _, actual_labels = torch.max(labels.data, 0)
         # Add the batch size of the data to the total
         total += labels.size(0)
 
