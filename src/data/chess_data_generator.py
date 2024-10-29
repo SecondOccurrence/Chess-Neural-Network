@@ -1,6 +1,7 @@
 import sys
 import chess
 import chess.engine
+import random
 import numpy as np
 
 from .utils import ChessUtils
@@ -35,11 +36,7 @@ class ChessDataGenerator:
 
     """
 
-    try:
-      engine = chess.engine.SimpleEngine.popen_uci(self.stockfish_path)
-    except chess.engine.EngineTerminatedError:
-      sys.stderr.write(f"Engine terminated unexpectedly. Check the stockfish path: \"{self.stockfish_path}\"\n")
-      return
+    engine1, engine2 = self.__init_players()
 
     board = chess.Board()
 
@@ -48,22 +45,34 @@ class ChessDataGenerator:
     save_counter = 0
     while len(self.dataset) < self.num_samples:
       if board.is_game_over():
-        # Reset board on game end
+        # Create stockfish player of different skill levels for a more diverse dataset
+        engine1.quit()
+        engine2.quit()
+        engine1, engine2 = self.__init_players()
+        # Reset board to start
         board = chess.Board()
 
-      sf_next_move = engine.play(board, chess.engine.Limit(time=0.1))
+      if board.turn == chess.WHITE:
+        current_player = engine1
+      else:
+        current_player = engine2
+
+      sf_next_move = self.__get_move(current_player, board)
+
       if sf_next_move is None:
         # Reset board if no move for some reason
+        engine1.quit()
+        engine2.quit()
+        engine1, engine2 = self.__init_players()
         board = chess.Board()
         continue
-      else:
-        best_move: chess.Move = sf_next_move.move
-        board.push(best_move)
+      
+      board.push(sf_next_move)
 
       # Evaluate the state of the board
-      sf_result = engine.analyse(board, chess.engine.Limit(depth=2))
-      
+      sf_result = current_player.analyse(board, chess.engine.Limit(depth=3), info=chess.engine.INFO_SCORE)
       score = self.__retrieve_score(sf_result)
+
       if score is None:
         print("Error on retrieval of dataset label (board score)")
         exit(0)
@@ -82,9 +91,40 @@ class ChessDataGenerator:
         self.__save_dataset(filename=self.save_path)
         save_counter = 0
 
-    engine.quit()
+    engine1.quit()
+    engine2.quit()
     self.__save_dataset(filename=self.save_path)
 
+  def __init_players(self):
+    e1_skill = random.randint(3, 18)
+    # Making sure there is a level playing field
+    #  So both engines have a realistic chance of winning
+    e2_skill = random.randint(3, e1_skill + 2)
+
+    engine1 = self.__configure_stockfish(skill_level=e1_skill)
+    engine2 = self.__configure_stockfish(skill_level=e2_skill)
+
+    return engine1, engine2
+
+  def __get_move(self, player, board):
+    # Random % chance between 0% and 40% of the move being random
+    random_move_chance = 0.15
+
+    if random.random() < random_move_chance:
+      move = random.choice(list(board.legal_moves))
+    else:
+      move = player.play(board, chess.engine.Limit(time=0.1)).move
+
+    return move
+
+  def __configure_stockfish(self, skill_level=20):
+    try:
+      engine = chess.engine.SimpleEngine.popen_uci(self.stockfish_path)
+      engine.configure({"Skill Level": skill_level})
+    except chess.engine.EngineTerminatedError:
+      sys.stderr.write(f"Engine terminated unexpectedly. Check the stockfish path: \"{self.stockfish_path}\"\n")
+
+    return engine
 
   def __retrieve_score(self, board_state):
     """
@@ -98,8 +138,8 @@ class ChessDataGenerator:
 
     if score:
       if score.is_mate():
-        # Considering white side scores are positive values and black negative
-        score_value = np.float32(9999) if score.is_mate() > 0 else np.float32(-9999)
+        # This means it returns a mate score. To convert mate score into centipawn score, you pass in this optional parameter
+        score_value = np.float32(score.relative.score(mate_score=9999))
       else:
         score_value = np.float32(score.relative.score())
     else:
