@@ -87,44 +87,38 @@ class Trainer:
 
     # Store the total loss of the set
     total_loss = 0
+    total_samples = 0
+    total_error_margins = 0.0
+    accurate_predictions = 0
 
-    # Store the number of correct guesses
-    correct = 0
-    total = 0
+    threshold = 1
 
     with torch.no_grad():
       for inputs, labels in val_loader:
-        # TODO: label must be converted to max index
-        inputs = inputs.to(device)
-        labels = labels.to(device)
+        inputs, labels = inputs.to(device), labels.to(device)
 
         outputs = self.model(inputs)
         outputs = outputs.squeeze()
 
-        labels = labels.float()
-
         loss = self.model.loss(outputs, labels)
-        total_loss += loss.item()
 
-        # Extract the class that the model has chosen as the highest probability
-        #   We don't need the first of the return value, so discarding
-        _, predicted_labels = torch.max(outputs.data, 0)
-        _, actual_labels = torch.max(labels.data, 0)
-        # Add the batch size of the data to the total
-        total += labels.size(0)
+        total_loss += loss.item() * inputs.size(0)
+        total_samples += inputs.size(0)
 
-        correct_labels = (predicted_labels == actual_labels).sum().item()
-        correct += correct_labels
+        error_margins = torch.abs(outputs - labels)
+        total_error_margins += error_margins.sum().item()
+
+        accurate_predictions += (error_margins <= threshold).sum().item()
 
     # Calculate statistics
-    average_loss = total_loss / len(val_loader)
-    model_accuracy = correct / total
-    as_percentage = model_accuracy * 100
+    average_loss = total_loss / total_samples
+    mean_abs_error = total_error_margins / total_samples
+    accuracy = accurate_predictions / total_samples * 100
 
     # Print statistics and write for tensorboard
-    print(f", validation_loss: {average_loss:.3f}, validation_accuracy: {as_percentage:.2f}%\n")
+    print(f", validation_loss: {average_loss:.3f}, MAE: {mean_abs_error:.3f}, validation_accuracy: {accuracy:.2f}%\n")
     self.writer.add_scalar("Loss/Valid", average_loss, epoch)
-    self.writer.add_scalar("Loss/Accuracy", model_accuracy, epoch)
+    self.writer.add_scalar("Loss/Accuracy", accuracy, epoch)
 
     return average_loss
 

@@ -1,4 +1,5 @@
 from torch.utils.data import Dataset
+from typing import Optional,List, Tuple
 
 import numpy as np
 
@@ -11,15 +12,42 @@ class ChessDataset(Dataset):
 
     """
 
-    self.dataset = []
-    self.__load_dataset(filename=data_path)
+    self.min_score = -9999
+    self.max_score = 9999
+
+    self.loaded_data = self.__load_dataset(filename=data_path)
+    if self.loaded_data is None:
+      return
+
+    self.boards = [board for board, _ in self.loaded_data]
+    self.scores = np.array([score for _, score in self.loaded_data])
+
+    self.normalised_scores = self.__normalise_scores(self.scores)
+
     self.data_transform = data_transform
 
+  def __normalise_scores(self, scores):
+    """
+    Returns the normalised labels of a dataset in range [-1, 1]
+
+    """
+
+    return 2 * (scores - self.min_score) / (self.max_score - self.min_score) - 1
+
+  def get_score(self, index):
+    return self.scores[index]
+
   def __len__(self):
-    return len(self.dataset)
+    if self.loaded_data is None:
+      length = 0
+    else:
+      length = len(self.loaded_data)
+
+    return length
 
   def __getitem__(self, index):
-    board, score = self.dataset[index]
+    board = self.boards[index]
+    score = self.normalised_scores[index]
 
     # transforms.ToTensor() seems to expect the input to be of shape (H, W, C)
     #   this input is in (C, H, W), so we need to convert it before transforming
@@ -31,7 +59,7 @@ class ChessDataset(Dataset):
 
     return board, score
 
-  def __load_dataset(self, filename):
+  def __load_dataset(self, filename) -> Optional[List[Tuple[np.ndarray, float]]]:
     """
     Loads a dataset (saved as .npz) into the class
 
@@ -53,13 +81,14 @@ class ChessDataset(Dataset):
 
     if(len(chess_board) != len(board_score)):
       print("Number of chess boards are not equal to the number of moves. Data loaded is invalid. Data will not be loaded.")
-      return
+      return None
 
     # Reset dataset related variables in case any data has already been loaded
-    self.dataset = []
+    dataset = []
     self.all_possible_moves = set()
 
     for board_state, target in zip(chess_board, board_score):
-      self.dataset.append((board_state, target))
+      dataset.append((board_state, target))
 
-    print(f"Successfully loaded {len(self.dataset)} samples.")
+    print(f"Successfully loaded {len(dataset)} samples.")
+    return dataset
