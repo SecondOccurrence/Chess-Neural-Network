@@ -97,8 +97,7 @@ class Trainer:
       for inputs, labels in val_loader:
         inputs, labels = inputs.to(device), labels.to(device)
 
-        outputs = self.model(inputs)
-        outputs = outputs.squeeze()
+        outputs = self.model(inputs).squeeze()
 
         loss = self.model.loss(outputs, labels)
 
@@ -122,25 +121,38 @@ class Trainer:
 
     return average_loss
 
-  def test(self, test_loader, batch_size, device):
+  def test(self, test_loader, device):
     self.model.eval()
 
-    test_loss = 0
-    correct_predictions = 0
+    # Store the total loss of the set
+    total_loss = 0
+    total_samples = 0
+    total_error_margins = 0.0
+    accurate_predictions = 0
+
+    threshold = 1
+
     with torch.no_grad():
       for (inputs, target) in test_loader:
-        inputs = inputs.to(device)
-        target = target.to(device)
+        inputs, labels = inputs.to(device), target.to(device)
 
-        outputs = self.model(inputs)
+        outputs = self.model(inputs).squeeze()
 
-        # Find the class with the highest predicted probability
-        _, predicted = torch.max(outputs.data, 1)
-        # Compare predicted class to target class (0 or 1) in the batch
-        correct_predictions += (predicted == target).sum().item()
+        loss = self.model.loss(outputs, labels)
 
-    num_batches = len(test_loader)
-    test_loss /= num_batches
-    accuracy = correct_predictions / (num_batches * batch_size)
+        total_loss += loss.item() * inputs.size(0)
+        total_samples += inputs.size(0)
 
-    print(f"Test Loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%")
+        error_margins = torch.abs(outputs - labels)
+        total_error_margins += error_margins.sum().item()
+
+        accurate_predictions += (error_margins <= threshold).sum().item()
+
+    # Calculate statistics
+    average_loss = total_loss / total_samples
+    mean_abs_error = total_error_margins / total_samples
+    accuracy = accurate_predictions / total_samples * 100
+
+    print(f"Test Loss: {average_loss:.3f}, MAE: {mean_abs_error:.3f}, Validation Accuracy: {accuracy:.2f}%\n")
+    print(f"Out of {total_samples} total samples..")
+    print(f"Model correctly determined {accurate_predictions} samples. ({accurate_predictions}/{total_samples})")
