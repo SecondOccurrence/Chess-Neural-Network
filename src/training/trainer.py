@@ -3,9 +3,9 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard.writer import SummaryWriter
 
 class Trainer:
-  def __init__(self, model, save_path):
+  def __init__(self, model, save_path, log_dir):
     # Create object for tensorboard logging throughout the training phase
-    self.writer = SummaryWriter()
+    self.writer = SummaryWriter(log_dir=log_dir)
     self.model = model
     self.save_path = save_path
     self.optimizer = model.configure_optimizers()
@@ -16,7 +16,7 @@ class Trainer:
 
     best_val_loss = float("inf")
     val_patience = 0
-    val_threshold = 0.01
+    val_threshold = 0.0005
     for epoch in range(epochs):
       print(f"Epoch {epoch + 1} / {epochs}")
       self.fit_epoch(train_loader, epoch, device)

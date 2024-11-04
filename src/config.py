@@ -21,6 +21,7 @@ class Config:
   def __init__(self, data_path):
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    self.log_dir = "../runs"
     self.nn = ModelParameters(
       weight_path = "../saves/chess_nn_weights.pth",
       retrain_model=True,

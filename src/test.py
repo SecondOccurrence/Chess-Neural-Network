@@ -13,7 +13,7 @@ def main():
   model.to(conf.device)
 
   print("Model testing..")
-  trainer = Trainer(model, conf.nn.weight_path)
+  trainer = Trainer(model, conf.nn.weight_path, conf.log_dir)
   trainer.test(conf.test_loader, conf.device)
 
 if __name__ == "__main__":
