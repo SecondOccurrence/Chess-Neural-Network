@@ -1,4 +1,5 @@
 import chess
+import torch
 import numpy as np
 
 class ChessUtils:
@@ -87,10 +88,10 @@ class ChessUtils:
     """
 
     best_index = -1
-    best_diff = float("inf")
+    best_diff = float("-inf")
 
     least_index = -1
-    least_diff = float("-inf")
+    least_diff = float("inf")
 
     for i in range(len(scores)):
       score = scores[i]
@@ -101,7 +102,7 @@ class ChessUtils:
           best_diff = difference
           best_index = i
       else:
-        if difference > least_diff:
+        if difference < least_diff:
           least_diff = difference
           least_index = i
 
@@ -110,4 +111,26 @@ class ChessUtils:
     else:
       return least_index
 
+  @staticmethod
+  def to_model_compatible(board):
+    """
+    Converts a standard chess board input into one that can be passed into the model
+
+    """
+    board = torch.from_numpy(board).float()
+    board = board.unsqueeze(0)
+
+    return board
+
+  @staticmethod
+  def extract_true_score(score):
+    """
+    Unnormalises the score output from the model
+
+    """
+
+    min_score = -9999
+    max_score = 9999
+
+    return min_score + (score + 1) * (max_score - min_score) / 2
 

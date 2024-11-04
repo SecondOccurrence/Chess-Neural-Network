@@ -1,4 +1,6 @@
 import chess
+import numpy as np
+import torch
 
 from config import Config
 from data import ChessUtils
@@ -35,22 +37,23 @@ def nn_move(model, board):
   print("Execute Black move")
 
   input = ChessUtils.board_to_matrix(board)
+  output = model(ChessUtils.to_model_compatible(input))
+  current_score = ChessUtils.extract_true_score(output)
 
-  current_score = model(input)
-
-  possible_moves = board.legal_moves
+  possible_moves = list(board.legal_moves)
   possible_scores = []
 
   temp_board = board.copy()
-  for i, move in enumerate(possible_moves):
+  for move in possible_moves:
     # Apply the possible move to a temporary board state
     temp_board.push(move)
     temp_input = ChessUtils.board_to_matrix(temp_board)
 
     # Retrieve the models score interpretation of the board state
-    possible_scores.append(model(temp_input))
+    temp_output = model(ChessUtils.to_model_compatible(temp_input))
+    temp_score = ChessUtils.extract_true_score(temp_output)
 
-    print(f"For move: {move}. Score - {possible_scores[i]}")
+    possible_scores.append(temp_score)
 
     # Restore the board state before applying move
     temp_board = board.copy()
@@ -61,7 +64,7 @@ def nn_move(model, board):
 
 def main():
   conf = Config(data_path="../data/chess_dataset_250k.npz")
-  model = ResNet18(input_size=conf.input_size, output_size=conf.output_size, lr=conf.nn.learning_rate, lr_gamma=conf.nn.lr_gamma)
+  model = ResNet18(input_size=conf.input_size, output_size=conf.output_size, lr=conf.nn.learning_rate, lr_gamma=conf.nn.lr_gamma).eval()
   model.load_state(conf.nn.weight_path)
 
   board = chess.Board()
@@ -71,6 +74,7 @@ def main():
     player = "White" if board.turn == chess.WHITE else "Black"
     if player == "Black":
       nn_move(model, board)
+      print_board(board)
     else: 
       print(f"Your move")
 
