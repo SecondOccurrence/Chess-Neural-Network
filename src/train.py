@@ -15,7 +15,7 @@ def train_model(model, train_loader, val_loader, save_path, retrain, epochs, dev
     model.load_state(save_path)
 
   model.to(device)
-  trainer = Trainer(model, save_path, conf.log_dir)
+  trainer = Trainer(model, save_path)
   trainer.train(train_loader, val_loader, epochs, device)
 
 chess_nn_model = ResNet18(conf.input_size, conf.output_size, conf.nn.learning_rate, conf.nn.lr_gamma)

@@ -3,5 +3,5 @@ venv
 **/pyrightconfig.json
 **/__pycache__/
 data/*
-src/runs
+**/runs
 saves/

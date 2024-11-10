@@ -3,20 +3,20 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard.writer import SummaryWriter
 
 class Trainer:
-  def __init__(self, model, save_path, log_dir):
+  def __init__(self, model, save_path):
     # Create object for tensorboard logging throughout the training phase
-    self.writer = SummaryWriter(log_dir=log_dir)
+    self.writer = SummaryWriter()
     self.model = model
     self.save_path = save_path
     self.optimizer = model.configure_optimizers()
-    self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="min", factor=self.model.lr_gamma, patience=10)
+    self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="min", factor=self.model.lr_gamma, patience=5)
 
   def train(self, train_loader, val_loader, epochs, device):
     self.model.train()
 
     best_val_loss = float("inf")
     val_patience = 0
-    val_threshold = 0.0005
+    val_threshold = 0.06
     for epoch in range(epochs):
       print(f"Epoch {epoch + 1} / {epochs}")
       self.fit_epoch(train_loader, epoch, device)
@@ -26,7 +26,7 @@ class Trainer:
 
       if val_loss > best_val_loss + val_threshold:
         val_patience += 1
-        if val_patience >= 8:
+        if val_patience >= 5:
           print("Stopping training early. Validation loss is increasing too much")
           break
       elif val_loss < best_val_loss:
