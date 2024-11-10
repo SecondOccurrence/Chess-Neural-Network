@@ -62,8 +62,8 @@ def nn_move(model, board):
   board.push(best_move)
 
 def main():
-  conf = Config(data_path="./data/chess_dataset.npz")
-  model = ResNet18(input_size=conf.input_size, output_size=conf.output_size, lr=conf.nn.learning_rate, lr_gamma=conf.nn.lr_gamma).eval()
+  conf = Config(data_path=None)
+  model = ResNet18(input_size=conf.input_size, output_size=conf.output_size, lr=None, lr_gamma=None).eval()
   model.load_state(conf.nn.weight_path)
 
   board = chess.Board()
