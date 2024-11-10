@@ -37,17 +37,16 @@ class Config:
       RandomTransform(VerticalFlip(), probability=0.5),
     ])
 
-    self.dataset = ChessDataset(data_path=data_path, data_transform=self.data_transform)
     self.input_size = 14*8*8
     self.output_size = 1
 
-    print(f"Input size: {self.input_size}")
-    print(f"Output size: {self.output_size}")
+    if data_path is not None:
+      self.dataset = ChessDataset(data_path=data_path, data_transform=self.data_transform)
 
-    self.train_data, self.val_data, self.test_data = self.__get_dataset()
-    self.train_loader = DataLoader(self.train_data, batch_size=self.nn.batch_size, shuffle=True)
-    self.val_loader = DataLoader(self.val_data, batch_size=self.nn.batch_size, shuffle=False)
-    self.test_loader = DataLoader(self.test_data, batch_size=self.nn.batch_size, shuffle=True)
+      self.train_data, self.val_data, self.test_data = self.__get_dataset()
+      self.train_loader = DataLoader(self.train_data, batch_size=self.nn.batch_size, shuffle=True)
+      self.val_loader = DataLoader(self.val_data, batch_size=self.nn.batch_size, shuffle=False)
+      self.test_loader = DataLoader(self.test_data, batch_size=self.nn.batch_size, shuffle=True)
 
   def __get_dataset(self):
     """

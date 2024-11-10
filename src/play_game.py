@@ -51,6 +51,7 @@ def nn_move(model, board):
     temp_output = model(ChessUtils.to_model_compatible(temp_input))
     temp_score = ChessUtils.extract_true_score(temp_output)
 
+    print(f"calculated: {temp_score}")
     possible_scores.append(temp_score)
 
     # Restore the board state before applying move
