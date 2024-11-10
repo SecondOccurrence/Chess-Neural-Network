@@ -1,8 +1,8 @@
 import chess
 
-from config import Config
-from data import ChessUtils
-from model.resnet18 import ResNet18
+from .config import Config
+from .data import ChessUtils
+from .model.resnet18 import ResNet18
 
 def print_board(board):
   """
@@ -61,7 +61,7 @@ def nn_move(model, board):
   board.push(best_move)
 
 def main():
-  conf = Config(data_path="../data/chess_dataset.npz")
+  conf = Config(data_path="./data/chess_dataset.npz")
   model = ResNet18(input_size=conf.input_size, output_size=conf.output_size, lr=conf.nn.learning_rate, lr_gamma=conf.nn.lr_gamma).eval()
   model.load_state(conf.nn.weight_path)
 

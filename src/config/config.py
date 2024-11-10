@@ -2,8 +2,8 @@ import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 
-from data.chess_dataset import ChessDataset
-from training.transforms import *
+from ..data.chess_dataset import ChessDataset
+from ..training.transforms import *
 
 from dataclasses import dataclass
 
@@ -21,9 +21,9 @@ class Config:
   def __init__(self, data_path):
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    self.log_dir = "../runs"
+    self.log_dir = "./runs"
     self.nn = ModelParameters(
-      weight_path = "../saves/chess_nn_weights.pth",
+      weight_path = "./saves/chess_nn_weights.pth",
       retrain_model=True,
       batch_size=512,
       learning_rate=0.0015,

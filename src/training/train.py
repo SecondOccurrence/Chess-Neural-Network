@@ -1,8 +1,8 @@
-from config import Config
-from training import Trainer
-from model import ResNet18
+from ..config import Config
+from ..model import ResNet18
+from .trainer import Trainer
 
-conf = Config(data_path="../data/chess_dataset.npz")
+conf = Config(data_path="./data/chess_dataset.npz")
 
 def train_model(model, train_loader, val_loader, save_path, retrain, epochs, device, model_name):
   print(f"Do you wish to train the {model_name} model? [Y,y/N,n]")
