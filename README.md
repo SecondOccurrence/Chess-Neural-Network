@@ -1,4 +1,4 @@
-This was made as part of a final assignment for a Machine Learning and Artificial Intelligence unit at University. We were tasked with implementing a Neural Network to solve a problem of our choice.
+This was made as part of a final assignment for a Machine Learning and Artificial Intelligence unit at University. We were tasked with implementing a Neural Network to solve a problem of our choice. This submission received full marks.
 
 # Project Description:
 
